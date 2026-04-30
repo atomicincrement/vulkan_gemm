@@ -1,13 +1,14 @@
 mod phase1;
 mod phase2;
+mod phase3;
 mod shader;
 mod vulkan_context;
 
 fn main() {
     println!("Vulkan GEMM Project\n");
 
-    // Run Phase 2 (which internally uses Phase 1 concepts)
-    if let Err(e) = phase2::run_phase_2() {
+    // Run Phase 3 (which builds on Phase 1 and 2 concepts)
+    if let Err(e) = phase3::run_phase_3() {
         eprintln!("✗ Error: {}", e);
     }
 }

@@ -4,7 +4,7 @@ This is a project to learn how we can build neural net implementations
 using vulkan command buffers. We will then compare them with CPU implementations
 using AVX512-BF16 and AVX512-VNNI.
 
-## Phase 1: GPU Capability Detection
+## Phase 1: GPU Capability Detection ✓
 
 * Query Vulkan device properties for supported formats
 * Check for fp4, fp8, fp16 format support
@@ -12,7 +12,7 @@ using AVX512-BF16 and AVX512-VNNI.
 * Log GPU memory limits and max workgroup sizes
 * Document supported formats for target hardware
 
-## Phase 2: Vulkan Foundation
+## Phase 2: Vulkan Foundation ✓
 
 * Initialize Vulkan instance and device
 * Set up compute queue and command buffers
