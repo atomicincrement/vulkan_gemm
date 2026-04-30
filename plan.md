@@ -28,6 +28,38 @@ using AVX512-BF16 and AVX512-VNNI.
 * Test with small vectors (e.g., 1024 elements)
 * Benchmark against CPU baseline
 
+## Phase 3.5: State-of-the-Art Discovery
+
+Research existing Vulkan matrix kernel implementations and best practices:
+
+* **Popular Vulkan Matrix Libraries:**
+  - VkFFT (FFT, supports various data types)
+  - Vulkan Samples (NVIDIA - contains matrix operations)
+  - SPIR-V optimizations and tools
+  
+* **Academic/Research Kernels:**
+  - Papers on Vulkan compute optimization
+  - GitHub repositories with open-source implementations
+  - Kernel fusion strategies for GEMM
+  
+* **Performance Benchmarks:**
+  - Existing Vulkan GEMM performance numbers
+  - Comparison with CUDA/cuBLAS on similar hardware
+  - Memory bandwidth utilization patterns
+  
+* **Optimization Techniques:**
+  - Shared memory/local memory strategies
+  - Workgroup size optimization for RDNA/Zen architectures
+  - Vectorization and instruction-level parallelism
+  - Bank conflict avoidance in shared memory
+  - Half-precision (fp16) and lower-precision optimizations
+
+* **Deliverables:**
+  - Research summary document with findings
+  - Links to relevant repositories and papers
+  - Decision on whether to fork existing work or maintain custom implementation
+  - Documented best practices to apply
+
 ## Phase 4: Matrix Multiplication (4x4 Tile)
 
 * Design 4x4 tile multiplication kernel
