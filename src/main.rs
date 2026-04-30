@@ -1,14 +1,15 @@
 mod phase1;
 mod phase2;
 mod phase3;
+mod phase4;
 mod shader;
 mod vulkan_context;
 
 fn main() {
     println!("Vulkan GEMM Project\n");
 
-    // Run Phase 3 (which builds on Phase 1 and 2 concepts)
-    if let Err(e) = phase3::run_phase_3() {
+    // Run Phase 4 (64x64 tile matrix multiply)
+    if let Err(e) = phase4::run_phase_4() {
         eprintln!("✗ Error: {}", e);
     }
 }
