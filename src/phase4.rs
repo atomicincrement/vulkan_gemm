@@ -140,7 +140,9 @@ pub fn run_phase_4() -> Result<(), Box<dyn std::error::Error>> {
     };
     println!("✓ Pipeline layout created");
 
-    // Create compute pipeline with matrix multiply shader
+    // Load SPIR-V shader (compiled at build time if glslc available, or precompiled fallback)
+    // To compile from GLSL source:
+    //   glslc src/matrix_multiply.glsl -o shader.spv
     let shader_spirv = shader::get_matrix_multiply_shader_spirv();
     println!("✓ Shader SPIR-V loaded ({} words)", shader_spirv.len());
     
@@ -159,33 +161,77 @@ pub fn run_phase_4() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
     
-    // Destroy shader module (will be used in full implementation)
-    unsafe {
-        ctx.device.destroy_shader_module(shader_module, None);
-    }
+    // Create compute pipeline with the compiled shader
+    let entry_name = std::ffi::CStr::from_bytes_with_nul(b"main\0")?;
+    let shader_stage_info = vk::PipelineShaderStageCreateInfo::builder()
+        .stage(vk::ShaderStageFlags::COMPUTE)
+        .module(shader_module)
+        .name(entry_name);
 
-    // NOTE: Full compute shader dispatch requires proper SPIR-V compilation
-    // For now, we demonstrate the complete infrastructure pipeline
-    // A proper matrix multiply shader requires compiling GLSL to SPIR-V using glslc:
-    //   $ glslc shader.glsl -o shader.spv
-    //   $ spirv-val shader.spv
-    //
-    // To continue Phase 4:
-    // 1. Use glslc/shaderc to compile the GLSL shader to proper SPIR-V
-    // 2. Generate hex bytecode: spirv-as shader.spv -o shader.hex
-    // 3. Embed bytecode in shader.rs
-    // 4. Uncomment code below to execute the compute dispatch
-    
-    println!("\n✓ Phase 4 Infrastructure Complete");
-    println!("  Next: Compile proper GLSL matrix multiply shader to SPIR-V");
-    println!("  (Requires glslc tool from Vulkan SDK)");
-    
+    let shader_stages = [*shader_stage_info];
+    let pipeline_info = vk::ComputePipelineCreateInfo::builder()
+        .stage(*shader_stages.first().unwrap())
+        .layout(_pipeline_layout);
+
+    let pipelines = unsafe {
+        let result = ctx.device
+            .create_compute_pipelines(vk::PipelineCache::null(), &[*pipeline_info], None);
+        match result {
+            Ok(pipelines) => {
+                println!("✓ Compute pipeline created");
+                pipelines
+            }
+            Err((_pipelines, err)) => {
+                return Err(format!("Failed to create compute pipeline: {:?}", err).into());
+            }
+        }
+    };
+    let pipeline = pipelines[0];
+
+    // Allocate and record command buffer
+    let command_buffers = ctx.allocate_command_buffers(1)?;
+    let command_buffer = command_buffers[0];
+
+    let begin_info = vk::CommandBufferBeginInfo::builder()
+        .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
+
+    unsafe {
+        ctx.device.begin_command_buffer(command_buffer, &begin_info)?;
+
+        // Bind pipeline and descriptor set
+        ctx.device.cmd_bind_pipeline(
+            command_buffer,
+            vk::PipelineBindPoint::COMPUTE,
+            pipeline,
+        );
+
+        let descriptor_sets_slice = [descriptor_set];
+        ctx.device.cmd_bind_descriptor_sets(
+            command_buffer,
+            vk::PipelineBindPoint::COMPUTE,
+            _pipeline_layout,
+            0,
+            &descriptor_sets_slice,
+            &[],
+        );
+
+        // Dispatch compute work: 4x4 workgroups (each 16x16 threads = 64x64 total)
+        // This processes the entire 64x64 tile with one dispatch call
+        ctx.device.cmd_dispatch(command_buffer, 4, 4, 1);
+
+        ctx.device.end_command_buffer(command_buffer)?;
+    }
+    println!("✓ Command buffer recorded with dispatch(4, 4, 1)");
+
+    // Submit and execute
+    ctx.submit_command_buffer(command_buffer)?;
+    println!("✓ Command buffer submitted and executed");
+
     // Cleanup
     unsafe {
-        // Note: Not creating pipeline due to SPIR-V compilation
-        // Once proper SPIR-V is available, uncomment the following:
-        // ctx.device.destroy_pipeline(pipeline, None);
-        // ctx.device.destroy_pipeline_layout(_pipeline_layout, None);
+        ctx.device.destroy_shader_module(shader_module, None);
+        ctx.device.destroy_pipeline(pipeline, None);
+        ctx.device.destroy_pipeline_layout(_pipeline_layout, None);
         ctx.device.destroy_descriptor_set_layout(descriptor_set_layout, None);
         ctx.device.destroy_descriptor_pool(descriptor_pool, None);
         ctx.device.destroy_buffer(buffer_a, None);
